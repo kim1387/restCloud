@@ -10,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 import javax.swing.*;
 
-@SpringBootApplication(excludeName = {"io.github.kim1387.restcloud.storage"})
+@SpringBootApplication
 public class RestCloudApplication {
     private static PluginChecker pluginChecker;
     private static ConfigurableApplicationContext ctx;
