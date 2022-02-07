@@ -1,24 +1,10 @@
 package io.github.kim1387.restcloud.storage.base.annotation;
 
-import io.github.kim1387.restcloud.storage.base.utils.PluginChecker;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
-
-import java.lang.annotation.Annotation;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Component
-public interface ConditionalApply extends ConditionalOnExpression {
-    PluginChecker pluginChecker = new PluginChecker();
-
-    @Override
-    default String value() {
-        String name = this.getClass().getSimpleName();
-        return Boolean.valueOf(pluginChecker.isPluginNameExists(name)).toString();
-    }
-
-    @Override
-    public default Class<? extends Annotation> annotationType() {
-        return null;
-    }
+public interface ConditionalApply {
+    // annotate only purpose.
 }
