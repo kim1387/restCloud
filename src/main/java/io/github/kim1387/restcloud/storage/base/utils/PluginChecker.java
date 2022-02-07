@@ -59,7 +59,14 @@ public class PluginChecker {
             Object bean = ctx.getBean(name);
             RequestMapping requestMapping = bean.getClass().getAnnotation(RequestMapping.class);
 
-            List<String> paths = Arrays.stream(requestMapping.path()).toList();
+            List<String> paths = Arrays.stream(requestMapping.path())
+                    .map(path -> {
+                        if(!path.startsWith("/")) {
+                            path = "/" + path;
+                        }
+                        return path;
+                    })
+                    .toList();
 
             String className = bean.getClass().getSimpleName();
 
@@ -75,7 +82,7 @@ public class PluginChecker {
                             return paths.stream()
                                     .allMatch(path ->
                                             handlerPaths.anyMatch(
-                                                    handlerPath -> handlerPath.contains(path)));
+                                                    handlerPath -> handlerPath.startsWith(path)));
                         })
                         .findFirst();
                 info.ifPresent(e -> {
