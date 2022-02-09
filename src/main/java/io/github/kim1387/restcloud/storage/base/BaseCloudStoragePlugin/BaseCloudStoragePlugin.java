@@ -1,13 +1,15 @@
 package io.github.kim1387.restcloud.storage.base.BaseCloudStoragePlugin;
 
-import io.github.kim1387.restcloud.storage.base.controller.BaseCloudStorageImplementation;
+import io.github.kim1387.restcloud.storage.base.controller.BaseCloudStorageController;
 import io.github.kim1387.restcloud.storage.base.interfaces.Plugin;
 import io.github.kim1387.restcloud.storage.base.utils.SingletonManager;
+import org.springframework.stereotype.Component;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 
-public class BaseCloudStoragePlugin implements Plugin<BaseCloudStorageImplementation> {
+// 상속시 @Component
+public abstract class BaseCloudStoragePlugin implements Plugin<BaseCloudStorageController> {
     private static SingletonManager<? extends BaseCloudStoragePlugin> singletonManager = null;
 
     private static SingletonManager<? extends BaseCloudStoragePlugin> initSingletonManager() throws InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
@@ -28,7 +30,5 @@ public class BaseCloudStoragePlugin implements Plugin<BaseCloudStorageImplementa
     }
 
 
-    public Class<BaseCloudStorageImplementation> getImplentation() {
-        return BaseCloudStorageImplementation.class;
-    }
+    public abstract Class<? extends BaseCloudStorageController> getControllerClass();
 }

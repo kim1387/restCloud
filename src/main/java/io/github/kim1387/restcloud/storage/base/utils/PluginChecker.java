@@ -1,8 +1,9 @@
 package io.github.kim1387.restcloud.storage.base.utils;
 
-import io.github.kim1387.restcloud.storage.base.annotation.ConditionalApply;
-import io.github.kim1387.restcloud.storage.derived.controller.GoogleDriveController;
+import io.github.kim1387.restcloud.storage.base.BaseCloudStoragePlugin.BaseCloudStoragePlugin;
+import io.github.kim1387.restcloud.storage.base.controller.BaseCloudStorageController;
 import lombok.NoArgsConstructor;
+import org.reflections.Reflections;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -27,10 +28,9 @@ public class PluginChecker {
     private RequestMappingHandlerMapping mapping;
 
     public static final String pluginPrefix = "cloud.plugins";
+    public static final String derivedPluginPackage = "io.github.kim1387.restcloud.storage.derived.plugin";
 
-    public boolean isPluginNameExists(String name) {
-        name = name.replace("Controller", "Plugin");
-
+    public boolean checkIsPluginNameExistsInProperty(String name) {
         Optional<String> property = Optional.empty();
 
         property = Optional.ofNullable(environment.getProperty(String.format("%s.%s", pluginPrefix, name)));
@@ -44,20 +44,24 @@ public class PluginChecker {
         return property.isPresent();
     }
 
-
     public void removeNotRegisteredPlugins(ConfigurableApplicationContext ctx) {
         BeanDefinitionRegistry registry = (BeanDefinitionRegistry) ctx.getAutowireCapableBeanFactory();
 
-        List<String> conditionalApplies = Arrays.stream(ctx.getBeanNamesForType(ConditionalApply.class)).toList();
-        List<String> requestMappings = Arrays.stream(ctx.getBeanNamesForAnnotation(RequestMapping.class)).toList();
+        Reflections reflections = new Reflections();
+        Set<Class<? extends BaseCloudStoragePlugin>> plugins = reflections.getSubTypesOf(BaseCloudStoragePlugin.class);
 
-        List<String> intersections = conditionalApplies.stream().filter(requestMappings::contains).toList();
+        for(Class<? extends BaseCloudStoragePlugin> pluginClass : plugins) {
+            String className = pluginClass.getSimpleName();
 
-        for(String name : intersections) {
-            System.out.println(String.format("bean %s found as plugin", name));
+            BaseCloudStoragePlugin plugin = ctx.getBean(pluginClass);
+            List<String> beanNames = Arrays.stream(ctx.getBeanNamesForType(pluginClass)).toList();
 
-            Object bean = ctx.getBean(name);
-            RequestMapping requestMapping = bean.getClass().getAnnotation(RequestMapping.class);
+            Class<? extends BaseCloudStorageController> controllerClass = plugin.getControllerClass();
+            BaseCloudStorageController controller = ctx.getBean(controllerClass);
+
+            System.out.println(String.format("class %s found as plugin", className));
+
+            RequestMapping requestMapping = controller.getClass().getAnnotation(RequestMapping.class);
 
             List<String> paths = Arrays.stream(requestMapping.path())
                     .map(path -> {
@@ -68,11 +72,9 @@ public class PluginChecker {
                     })
                     .toList();
 
-            String className = bean.getClass().getSimpleName();
+            boolean isPluginNameExistsInProperty = checkIsPluginNameExistsInProperty(className);
 
-            boolean exists = isPluginNameExists(className);
-
-            if(!exists) {
+            if(!isPluginNameExistsInProperty) {
                 Optional<RequestMappingInfo> info = mapping.getHandlerMethods()
                         .keySet()
                         .stream()
@@ -87,13 +89,20 @@ public class PluginChecker {
                         .findFirst();
                 info.ifPresent(e -> {
                     mapping.unregisterMapping(e);
-                    registry.removeBeanDefinition(name);
-                    System.out.println(mapping.getPathPrefixes().containsKey(name));
+
+                    beanNames.forEach(name -> {
+                        System.out.println(String.format("unregistering bean %s...", name));
+
+                        registry.removeBeanDefinition(name);
+
+                        String notOr = mapping.getPathPrefixes().containsKey(name) ? "" : " not";
+                        System.out.println(String.format("after unregister, mapping%s contains key %s", notOr, name));
+                    });
                 });
             }
 
-            String onOff = exists ? "on" : "off";
-            System.out.println(String.format("bean %s marked as %s application.yml", name, onOff));
+            String onOff = isPluginNameExistsInProperty ? "on" : "off";
+            System.out.println(String.format("plguin %s marked as %s application.yml", className, onOff));
         }
     }
 }
